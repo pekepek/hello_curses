@@ -77,6 +77,7 @@ module HelloCurses
       end
 
       adjust_position_x
+      debug
     end
 
     def cursor_up
@@ -95,6 +96,7 @@ module HelloCurses
       end
 
       adjust_position_x
+      debug
     end
 
     def adjust_position_x
@@ -107,12 +109,14 @@ module HelloCurses
       return if max_position_x == cursor_position_x
 
       @cursor_position_x += 1
+      debug
     end
 
     def cursor_left
       return if cursor_position_x.zero?
 
       @cursor_position_x -= 1
+      debug
     end
 
     def max_position_x
@@ -139,6 +143,12 @@ module HelloCurses
       @screen_position_y = data_position_y - screen.maxy + 1
 
       refresh
+    end
+
+    def debug
+      setpos(lines - 1, 0)
+      deleteln
+      addstr("cpx:#{cursor_position_x}, cpy:#{cursor_position_y}, dpy:#{data_position_y}, spy: #{screen_position_y}")
     end
   end
 end
