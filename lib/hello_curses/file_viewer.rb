@@ -23,6 +23,7 @@ module HelloCurses
       open_file
 
       while char = get_char
+        # TODO スクロールが必要ないファイル行数の場合にバグっている
         case char
         when Key::DOWN
           cursor_down
@@ -33,14 +34,23 @@ module HelloCurses
         when Key::LEFT
           cursor_left
         when "\e"
-          setpos(lines - 1, 0)
+          bottom_y = lines - 1
+
+          setpos(bottom_y, 0)
           echo
+
+          # NOTE getstr の Enter で一つスクロールしてしまうので戻す
           input = getstr.chomp
+          screen.scrl(-1)
 
           break if input == ':q'
 
-          deleteln
           noecho
+
+          # NOTE 入力した分とスクロールを戻した分のデータが欠けてしまうので補完
+          addstr(data_lines[screen_position_y + bottom_y + 1].to_s.chomp)
+          setpos(0, 0)
+          addstr(data_lines[screen_position_y + 1].to_s.chomp)
         end
 
         set_cursor
@@ -54,7 +64,7 @@ module HelloCurses
     attr_reader :screen, :data_lines, :cursor_position_x, :data_position_y, :screen_position_y, :max_data_line
 
     def cursor_down
-      return if data_position_y > max_data_line
+      return if data_position_y >= max_data_line
 
       @data_position_y += 1
 
@@ -66,13 +76,15 @@ module HelloCurses
     end
 
     def cursor_up
-      return if data_position_y < 0
+      return if data_position_y <= 0
 
       @data_position_y -= 1
 
       if cursor_position_y < 0
+        return if screen_position_y.negative?
+
         screen.scrl(-1)
-        addstr(data_lines[data_position_y + 1].to_s.chomp)
+        addstr(data_lines[data_position_y].to_s.chomp)
         @screen_position_y -= 1
       end
     end
@@ -100,7 +112,7 @@ module HelloCurses
         addstr(str)
       end
 
-      @max_data_line = data_lines.count - 1
+      @max_data_line = data_lines.count
       @data_position_y = max_data_line
       @screen_position_y = data_position_y - screen.maxy
 
