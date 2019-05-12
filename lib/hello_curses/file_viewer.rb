@@ -64,6 +64,8 @@ module HelloCurses
     attr_reader :screen, :data_lines, :cursor_position_x, :data_position_y, :screen_position_y, :max_data_line
 
     def cursor_down
+      setpos(cursor_position_y, 0)
+
       return if data_position_y >= max_data_line
 
       @data_position_y += 1
@@ -73,9 +75,13 @@ module HelloCurses
         addstr(data_lines[data_position_y].to_s.chomp)
         @screen_position_y += 1
       end
+
+      adjust_position_x
     end
 
     def cursor_up
+      setpos(cursor_position_y, 0)
+
       return if data_position_y <= 0
 
       @data_position_y -= 1
@@ -87,14 +93,30 @@ module HelloCurses
         addstr(data_lines[data_position_y].to_s.chomp)
         @screen_position_y -= 1
       end
+
+      adjust_position_x
+    end
+
+    def adjust_position_x
+      return if cursor_position_x <= max_position_x
+
+      @cursor_position_x = max_position_x
     end
 
     def cursor_right
+      return if max_position_x == cursor_position_x
+
       @cursor_position_x += 1
     end
 
     def cursor_left
+      return if cursor_position_x.zero?
+
       @cursor_position_x -= 1
+    end
+
+    def max_position_x
+      data_lines[data_position_y].to_s.chomp.size - 1
     end
 
     def set_cursor
@@ -102,7 +124,7 @@ module HelloCurses
     end
 
     def cursor_position_y
-      data_position_y - screen_position_y - 1
+      data_position_y - screen_position_y
     end
 
     def open_file
@@ -114,7 +136,7 @@ module HelloCurses
 
       @max_data_line = data_lines.count
       @data_position_y = max_data_line
-      @screen_position_y = data_position_y - screen.maxy
+      @screen_position_y = data_position_y - screen.maxy + 1
 
       refresh
     end
