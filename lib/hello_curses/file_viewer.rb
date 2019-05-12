@@ -8,9 +8,11 @@ module HelloCurses
 
     def initialize(file_name)
       @data_lines = File.readlines(file_name)
+      @cursor_position_x = 0
+      @cursor_position_y = 0
 
       stdscr.scrollok(true)
-      stdscr.keypad(true)
+      stdscr.keypad = true
       noecho
     end
 
@@ -19,6 +21,14 @@ module HelloCurses
 
       while char = get_char
         case char
+        when Key::DOWN
+          cursor_down
+        when Key::UP
+          cursor_up
+        when Key::RIGHT
+          cursor_right
+        when Key::LEFT
+          cursor_left
         when "\e"
           setpos(lines - 1, 0)
 
@@ -30,6 +40,7 @@ module HelloCurses
         end
 
         noecho
+        set_cursor
       end
 
       close_screen
@@ -37,7 +48,27 @@ module HelloCurses
 
     private
 
-    attr_reader :data_lines
+    attr_reader :data_lines, :cursor_position_x, :cursor_position_y
+
+    def cursor_down
+      @cursor_position_y += 1
+    end
+
+    def cursor_up
+      @cursor_position_y -= 1
+    end
+
+    def cursor_right
+      @cursor_position_x += 1
+    end
+
+    def cursor_left
+      @cursor_position_x -= 1
+    end
+
+    def set_cursor
+      setpos(cursor_position_y, cursor_position_x)
+    end
 
     def open_file
       data_lines.each_with_index do |str, idx|
@@ -47,6 +78,7 @@ module HelloCurses
       end
 
       refresh
+      set_cursor
     end
   end
 end
