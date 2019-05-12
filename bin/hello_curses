@@ -3,4 +3,4 @@
 require 'bundler/setup'
 require 'hello_curses'
 
-HelloCurses.execute
+HelloCurses.execute(ARGV[0])
