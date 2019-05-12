@@ -51,6 +51,8 @@ module HelloCurses
           addstr(data_lines[screen_position_y + bottom_y + 1].to_s.chomp)
           setpos(0, 0)
           addstr(data_lines[screen_position_y + 1].to_s.chomp)
+        else
+          input(char)
         end
 
         set_cursor
@@ -143,6 +145,19 @@ module HelloCurses
       @screen_position_y = data_position_y - screen.maxy + 1
 
       refresh
+    end
+
+    def input(char)
+      str = data_lines[data_position_y].to_s
+
+      b = str[0...cursor_position_x].to_s
+      a = str[cursor_position_x..-1].to_s
+
+      data_lines[data_position_y] = b + char + a
+
+      setpos(cursor_position_y, 0)
+      addstr(data_lines[data_position_y].to_s.chomp)
+      @cursor_position_x += 1
     end
 
     def debug
