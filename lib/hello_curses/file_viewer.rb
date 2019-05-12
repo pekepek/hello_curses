@@ -53,6 +53,8 @@ module HelloCurses
           addstr(data_lines[screen_position_y + 1].to_s.chomp)
         when "\u007F"
           delete
+        when /\r\Z/, /\n\Z/
+          add_newline
         else
           input(char)
         end
@@ -65,7 +67,7 @@ module HelloCurses
 
     private
 
-    attr_reader :screen, :data_lines, :cursor_position_x, :data_position_y, :screen_position_y, :max_data_line
+    attr_reader :screen, :data_lines, :cursor_position_x, :data_position_y, :screen_position_y
 
     def cursor_down
       setpos(cursor_position_y, 0)
@@ -136,17 +138,33 @@ module HelloCurses
     end
 
     def open_file
-      data_lines.each_with_index do |str, idx|
-        setpos(idx, 0)
+      data_lines.each_with_index do |str, i|
+        setpos(i, 0)
 
         addstr(str)
       end
 
-      @max_data_line = data_lines.count
       @data_position_y = max_data_line
       @screen_position_y = data_position_y - screen.maxy + 1
 
       refresh
+    end
+
+    def max_data_line
+      data_lines.count
+    end
+
+    def add_newline
+      data_lines.insert(data_position_y + 1, '')
+
+      (cursor_position_y + 1...lines).each.with_index(1) do |y, i|
+        setpos(y, 0)
+
+        screen.maxx.times { delch }
+        addstr(data_lines[data_position_y + i].to_s.chomp)
+      end
+
+      cursor_down
     end
 
     def delete
