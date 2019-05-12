@@ -51,6 +51,8 @@ module HelloCurses
           addstr(data_lines[screen_position_y + bottom_y + 1].to_s.chomp)
           setpos(0, 0)
           addstr(data_lines[screen_position_y + 1].to_s.chomp)
+        when "\u007F"
+          delete
         else
           input(char)
         end
@@ -147,6 +149,20 @@ module HelloCurses
       refresh
     end
 
+    def delete
+      return if cursor_position_x.zero?
+
+      str = data_lines[data_position_y].to_s
+
+      b = str[0...cursor_position_x-1].to_s
+      a = str[cursor_position_x..-1].to_s
+
+      data_lines[data_position_y] = b + a
+
+      redraw
+      cursor_left
+    end
+
     def input(char)
       str = data_lines[data_position_y].to_s
 
@@ -155,9 +171,14 @@ module HelloCurses
 
       data_lines[data_position_y] = b + char + a
 
+      redraw
+      cursor_right
+    end
+
+    def redraw
       setpos(cursor_position_y, 0)
-      addstr(data_lines[data_position_y].to_s.chomp)
-      @cursor_position_x += 1
+      delch
+      addstr(data_lines[data_position_y].to_s)
     end
 
     def debug
