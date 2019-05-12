@@ -3,7 +3,7 @@
 require 'curses'
 
 module HelloCurses
-  class FileViewer
+  class FileEditor
     include Curses
 
     def initialize(file_name)

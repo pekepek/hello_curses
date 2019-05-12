@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'hello_curses/version'
-require 'hello_curses/file_viewer'
+require 'hello_curses/file_editor'
 
 module HelloCurses
   extend self
@@ -9,6 +9,6 @@ module HelloCurses
   class Error < StandardError; end
 
   def execute(file_name)
-    FileViewer.new(file_name).view
+    FileEditor.new(file_name).view
   end
 end
