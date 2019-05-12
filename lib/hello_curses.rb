@@ -1,6 +1,12 @@
-require "hello_curses/version"
+require 'hello_curses/version'
+require 'curses'
 
 module HelloCurses
+  extend self
+
   class Error < StandardError; end
-  # Your code goes here...
+
+  def execute
+    puts 'HelloCurses'
+  end
 end
