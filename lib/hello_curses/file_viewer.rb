@@ -120,7 +120,7 @@ module HelloCurses
     end
 
     def max_position_x
-      data_lines[data_position_y].to_s.chomp.size - 1
+      data_lines[data_position_y].to_s.chomp.size
     end
 
     def set_cursor
