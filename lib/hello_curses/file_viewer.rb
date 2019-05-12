@@ -4,19 +4,34 @@ require 'curses'
 
 module HelloCurses
   class FileViewer
-    include  Curses
+    include Curses
 
     def initialize(file_name)
       @data_lines = File.readlines(file_name)
 
       stdscr.scrollok(true)
       stdscr.keypad(true)
+      noecho
     end
 
     def view
       open_file
 
-      get_char
+      while char = get_char
+        case char
+        when "\e"
+          setpos(lines - 1, 0)
+
+          echo
+
+          input = getstr.chomp
+
+          break if input == ':q'
+        end
+
+        noecho
+      end
+
       close_screen
     end
 
