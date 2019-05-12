@@ -9,10 +9,13 @@ module HelloCurses
     def initialize(file_name)
       @data_lines = File.readlines(file_name)
       @cursor_position_x = 0
-      @cursor_position_y = 0
+      @data_position_y = 0
+      @screen_position_y = 0
 
-      stdscr.scrollok(true)
-      stdscr.keypad = true
+      @screen = stdscr
+
+      screen.scrollok(true)
+      screen.keypad = true
       noecho
     end
 
@@ -31,15 +34,15 @@ module HelloCurses
           cursor_left
         when "\e"
           setpos(lines - 1, 0)
-
           echo
-
           input = getstr.chomp
 
           break if input == ':q'
+
+          deleteln
+          noecho
         end
 
-        noecho
         set_cursor
       end
 
@@ -48,14 +51,30 @@ module HelloCurses
 
     private
 
-    attr_reader :data_lines, :cursor_position_x, :cursor_position_y
+    attr_reader :screen, :data_lines, :cursor_position_x, :data_position_y, :screen_position_y, :max_data_line
 
     def cursor_down
-      @cursor_position_y += 1
+      return if data_position_y > max_data_line
+
+      @data_position_y += 1
+
+      if cursor_position_y >= screen.maxy
+        screen.scrl(1)
+        addstr(data_lines[data_position_y].to_s.chomp)
+        @screen_position_y += 1
+      end
     end
 
     def cursor_up
-      @cursor_position_y -= 1
+      return if data_position_y < 0
+
+      @data_position_y -= 1
+
+      if cursor_position_y < 0
+        screen.scrl(-1)
+        addstr(data_lines[data_position_y + 1].to_s.chomp)
+        @screen_position_y -= 1
+      end
     end
 
     def cursor_right
@@ -70,6 +89,10 @@ module HelloCurses
       setpos(cursor_position_y, cursor_position_x)
     end
 
+    def cursor_position_y
+      data_position_y - screen_position_y - 1
+    end
+
     def open_file
       data_lines.each_with_index do |str, idx|
         setpos(idx, 0)
@@ -77,8 +100,11 @@ module HelloCurses
         addstr(str)
       end
 
+      @max_data_line = data_lines.count - 1
+      @data_position_y = max_data_line
+      @screen_position_y = data_position_y - screen.maxy
+
       refresh
-      set_cursor
     end
   end
 end
