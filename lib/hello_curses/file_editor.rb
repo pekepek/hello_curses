@@ -10,8 +10,8 @@ module HelloCurses
       @file_name = file_name
       @data_lines = File.readlines(file_name)
       @cursor_position_x = 0
-      @data_position_y = 0
-      @screen_position_y = 0
+      @cursor_file_position_y = 0
+      @screen_top_file_position_y = 0
 
       @screen = stdscr
 
@@ -56,9 +56,9 @@ module HelloCurses
           noecho
 
           # NOTE 入力した分とスクロールを戻した分のデータが欠けてしまうので補完
-          addstr(data_lines[screen_position_y + bottom_y + 1].to_s.chomp)
+          addstr(data_lines[screen_top_file_position_y + bottom_y + 1].to_s.chomp)
           setpos(0, 0)
-          addstr(data_lines[screen_position_y + 1].to_s.chomp)
+          addstr(data_lines[screen_top_file_position_y + 1].to_s.chomp)
         when "\u007F"
           delete
         when /\r\Z/, /\n\Z/
@@ -75,19 +75,17 @@ module HelloCurses
 
     private
 
-    attr_reader :file_name, :screen, :data_lines, :cursor_position_x, :data_position_y, :screen_position_y
+    attr_reader :file_name, :screen, :data_lines, :cursor_position_x, :cursor_file_position_y, :screen_top_file_position_y
 
     def cursor_down
       setpos(cursor_position_y, 0)
 
-      return if data_position_y >= max_data_line
+      return if cursor_file_position_y >= max_data_line
 
-      @data_position_y += 1
+      @cursor_file_position_y += 1
 
       if cursor_position_y >= screen.maxy
-        screen.scrl(1)
-        addstr(data_lines[data_position_y].to_s.chomp)
-        @screen_position_y += 1
+        scroll(1)
       end
 
       adjust_position_x
@@ -96,19 +94,23 @@ module HelloCurses
     def cursor_up
       setpos(cursor_position_y, 0)
 
-      return if data_position_y <= 0
+      return if cursor_file_position_y <= 0
 
-      @data_position_y -= 1
+      @cursor_file_position_y -= 1
 
       if cursor_position_y < 0
-        return if screen_position_y.negative?
+        return if screen_top_file_position_y.negative?
 
-        screen.scrl(-1)
-        addstr(data_lines[data_position_y].to_s.chomp)
-        @screen_position_y -= 1
+        scroll(-1)
       end
 
       adjust_position_x
+    end
+
+    def scroll(num)
+      screen.scrl(num)
+      addstr(data_lines[cursor_file_position_y].to_s.chomp)
+      @screen_top_file_position_y += num
     end
 
     def adjust_position_x
@@ -130,7 +132,7 @@ module HelloCurses
     end
 
     def max_position_x
-      data_lines[data_position_y].to_s.chomp.size
+      data_lines[cursor_file_position_y].to_s.chomp.size
     end
 
     def set_cursor
@@ -138,7 +140,7 @@ module HelloCurses
     end
 
     def cursor_position_y
-      data_position_y - screen_position_y
+      cursor_file_position_y - screen_top_file_position_y
     end
 
     def open_file
@@ -148,8 +150,8 @@ module HelloCurses
         addstr(str)
       end
 
-      @data_position_y = max_data_line
-      @screen_position_y = data_position_y - screen.maxy + 1
+      @cursor_file_position_y = max_data_line
+      @screen_top_file_position_y = cursor_file_position_y - screen.maxy + 1
 
       refresh
     end
@@ -159,7 +161,7 @@ module HelloCurses
     end
 
     def add_newline
-      data_lines.insert(data_position_y + 1, '')
+      data_lines.insert(cursor_file_position_y + 1, '')
 
       redraw_under_lines
 
@@ -167,39 +169,37 @@ module HelloCurses
     end
 
     def delete
-      str = data_lines[data_position_y].to_s
+      str = data_lines[cursor_file_position_y].to_s
 
       if cursor_position_x.zero?
-        return if data_position_y.zero?
+        return if cursor_file_position_y.zero?
 
         cursor_up
         @cursor_position_x = max_position_x
 
-        data_lines[data_position_y] = data_lines[data_position_y].to_s.chomp + str
+        data_lines[cursor_file_position_y] = data_lines[cursor_file_position_y].to_s.chomp + str
 
-        data_lines.delete_at(data_position_y + 1)
+        data_lines.delete_at(cursor_file_position_y + 1)
 
         redraw_under_lines
       else
         b = str[0...cursor_position_x-1].to_s
         a = str[cursor_position_x..-1].to_s
 
-        data_lines[data_position_y] = b + a
+        data_lines[cursor_file_position_y] = b + a
 
         redraw_line
         cursor_left
       end
-
-      debug
     end
 
     def input(char)
-      str = data_lines[data_position_y].to_s
+      str = data_lines[cursor_file_position_y].to_s
 
       b = str[0...cursor_position_x].to_s
       a = str[cursor_position_x..-1].to_s
 
-      data_lines[data_position_y] = b + char + a
+      data_lines[cursor_file_position_y] = b + char + a
 
       redraw_line
       cursor_right
@@ -208,7 +208,7 @@ module HelloCurses
     def redraw_line
       setpos(cursor_position_y, 0)
       delch
-      addstr(data_lines[data_position_y].to_s)
+      addstr(data_lines[cursor_file_position_y].to_s)
     end
 
     def redraw_under_lines
@@ -216,14 +216,14 @@ module HelloCurses
         setpos(y, 0)
 
         screen.maxx.times { delch }
-        addstr(data_lines[data_position_y + i].to_s.chomp)
+        addstr(data_lines[cursor_file_position_y + i].to_s.chomp)
       end
     end
 
     def debug
       setpos(lines - 1, 0)
       deleteln
-      addstr("cpx:#{cursor_position_x}, cpy:#{cursor_position_y}, dpy:#{data_position_y}, spy: #{screen_position_y}")
+      addstr("cpx:#{cursor_position_x}, cpy:#{cursor_position_y}, dpy:#{cursor_file_position_y}, spy: #{screen_top_file_position_y}")
     end
   end
 end
