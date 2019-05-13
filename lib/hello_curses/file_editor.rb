@@ -83,7 +83,6 @@ module HelloCurses
       end
 
       adjust_position_x
-      debug
     end
 
     def cursor_up
@@ -102,7 +101,6 @@ module HelloCurses
       end
 
       adjust_position_x
-      debug
     end
 
     def adjust_position_x
@@ -115,14 +113,12 @@ module HelloCurses
       return if max_position_x == cursor_position_x
 
       @cursor_position_x += 1
-      debug
     end
 
     def cursor_left
       return if cursor_position_x.zero?
 
       @cursor_position_x -= 1
-      debug
     end
 
     def max_position_x
@@ -157,28 +153,36 @@ module HelloCurses
     def add_newline
       data_lines.insert(data_position_y + 1, '')
 
-      (cursor_position_y + 1...lines).each.with_index(1) do |y, i|
-        setpos(y, 0)
-
-        screen.maxx.times { delch }
-        addstr(data_lines[data_position_y + i].to_s.chomp)
-      end
+      redraw_under_lines
 
       cursor_down
     end
 
     def delete
-      return if cursor_position_x.zero?
-
       str = data_lines[data_position_y].to_s
 
-      b = str[0...cursor_position_x-1].to_s
-      a = str[cursor_position_x..-1].to_s
+      if cursor_position_x.zero?
+        return if data_position_y.zero?
 
-      data_lines[data_position_y] = b + a
+        cursor_up
+        @cursor_position_x = max_position_x
 
-      redraw
-      cursor_left
+        data_lines[data_position_y] = data_lines[data_position_y].to_s.chomp + str
+
+        data_lines.delete_at(data_position_y + 1)
+
+        redraw_under_lines
+      else
+        b = str[0...cursor_position_x-1].to_s
+        a = str[cursor_position_x..-1].to_s
+
+        data_lines[data_position_y] = b + a
+
+        redraw_line
+        cursor_left
+      end
+
+      debug
     end
 
     def input(char)
@@ -189,14 +193,23 @@ module HelloCurses
 
       data_lines[data_position_y] = b + char + a
 
-      redraw
+      redraw_line
       cursor_right
     end
 
-    def redraw
+    def redraw_line
       setpos(cursor_position_y, 0)
       delch
       addstr(data_lines[data_position_y].to_s)
+    end
+
+    def redraw_under_lines
+      (cursor_position_y...lines).each.with_index(0) do |y, i|
+        setpos(y, 0)
+
+        screen.maxx.times { delch }
+        addstr(data_lines[data_position_y + i].to_s.chomp)
+      end
     end
 
     def debug
