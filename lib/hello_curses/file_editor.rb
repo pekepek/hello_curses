@@ -7,6 +7,7 @@ module HelloCurses
     include Curses
 
     def initialize(file_name)
+      @file_name = file_name
       @data_lines = File.readlines(file_name)
       @cursor_position_x = 0
       @data_position_y = 0
@@ -43,7 +44,14 @@ module HelloCurses
           input = getstr.chomp
           screen.scrl(-1)
 
-          break if input == ':q'
+          case input
+          when ':q'
+            break
+          when ':wq'
+            File.open(file_name, 'w') {|f| f.puts data_lines }
+
+            break
+          end
 
           noecho
 
@@ -67,7 +75,7 @@ module HelloCurses
 
     private
 
-    attr_reader :screen, :data_lines, :cursor_position_x, :data_position_y, :screen_position_y
+    attr_reader :file_name, :screen, :data_lines, :cursor_position_x, :data_position_y, :screen_position_y
 
     def cursor_down
       setpos(cursor_position_y, 0)
