@@ -56,9 +56,8 @@ module HelloCurses
           noecho
 
           # NOTE 入力した分とスクロールを戻した分のデータが欠けてしまうので補完
-          addstr(data_lines[screen_top_file_position_y + bottom_y + 1].to_s.chomp)
-          setpos(0, 0)
-          addstr(data_lines[screen_top_file_position_y + 1].to_s.chomp)
+          draw_line(bottom_y, data_lines[screen_top_file_position_y + bottom_y].to_s.chomp)
+          draw_line(0, data_lines[screen_top_file_position_y].to_s.chomp)
         when "\u007F"
           delete
         when /\r\Z/, /\n\Z/
@@ -145,9 +144,7 @@ module HelloCurses
 
     def open_file
       data_lines.each_with_index do |str, i|
-        setpos(i, 0)
-
-        addstr(str)
+        draw_line(i, str)
       end
 
       @cursor_file_position_y = max_data_line
@@ -168,6 +165,12 @@ module HelloCurses
       cursor_down
     end
 
+    def delete_line
+      data_lines.delete_at(cursor_file_position_y + 1)
+
+      redraw_under_lines
+    end
+
     def delete
       str = data_lines[cursor_file_position_y].to_s
 
@@ -177,18 +180,18 @@ module HelloCurses
         cursor_up
         @cursor_position_x = max_position_x
 
-        data_lines[cursor_file_position_y] = data_lines[cursor_file_position_y].to_s.chomp + str
+        deleted_str = data_lines[cursor_file_position_y].to_s.chomp + str
 
-        data_lines.delete_at(cursor_file_position_y + 1)
-
-        redraw_under_lines
+        write_to_file(cursor_position_y, deleted_str)
+        delete_line
       else
         b = str[0...cursor_position_x-1].to_s
         a = str[cursor_position_x..-1].to_s
 
-        data_lines[cursor_file_position_y] = b + a
+        deleted_str = b + a
 
-        redraw_line
+        write_to_file(cursor_position_y, deleted_str)
+        draw_line(cursor_position_y, deleted_str)
         cursor_left
       end
     end
@@ -199,24 +202,26 @@ module HelloCurses
       b = str[0...cursor_position_x].to_s
       a = str[cursor_position_x..-1].to_s
 
-      data_lines[cursor_file_position_y] = b + char + a
+      inputed_str = b + char + a
 
-      redraw_line
+      write_to_file(cursor_position_y, inputed_str)
+      draw_line(cursor_position_y, inputed_str)
       cursor_right
     end
 
-    def redraw_line
-      setpos(cursor_position_y, 0)
-      delch
-      addstr(data_lines[cursor_file_position_y].to_s)
+    def write_to_file(postion, data)
+      data_lines[postion] = data
+    end
+
+    def draw_line(postion, data)
+      setpos(postion, 0)
+      screen.maxx.times { delch }
+      addstr(data)
     end
 
     def redraw_under_lines
       (cursor_position_y...lines).each.with_index(0) do |y, i|
-        setpos(y, 0)
-
-        screen.maxx.times { delch }
-        addstr(data_lines[cursor_file_position_y + i].to_s.chomp)
+        draw_line(y, data_lines[cursor_file_position_y + i].to_s.chomp)
       end
     end
 
