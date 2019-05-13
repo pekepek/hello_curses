@@ -20,7 +20,7 @@ module HelloCurses
       noecho
     end
 
-    def view
+    def edit
       open_file
 
       while char = get_char

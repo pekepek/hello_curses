@@ -9,6 +9,6 @@ module HelloCurses
   class Error < StandardError; end
 
   def execute(file_name)
-    FileEditor.new(file_name).view
+    FileEditor.new(file_name).edit
   end
 end
