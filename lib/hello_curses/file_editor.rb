@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'curses'
+require 'hello_curses/character_color'
 
 module HelloCurses
   class FileEditor
@@ -8,7 +9,7 @@ module HelloCurses
 
     def initialize(file_name)
       @file_name = file_name
-      @data_lines = File.readlines(file_name)
+      @data_lines = File.open(file_name, 'a+').readlines
       @cursor_position_x = 0
       @cursor_file_position_y = 0
       @screen_top_file_position_y = 0
@@ -51,13 +52,18 @@ module HelloCurses
             File.open(file_name, 'w') {|f| f.puts data_lines }
 
             break
+          when /\A\/(.+)/
+            character_color.change_color!(color: $1)
           end
 
           noecho
 
+          deleteln
+
           # NOTE 入力した分とスクロールを戻した分のデータが欠けてしまうので補完
           draw_line(bottom_y, data_lines[screen_top_file_position_y + bottom_y].to_s.chomp)
           draw_line(0, data_lines[screen_top_file_position_y].to_s.chomp)
+          open_file
         when "\u007F"
           delete
         when /\r\Z/, /\n\Z/
@@ -75,6 +81,10 @@ module HelloCurses
     private
 
     attr_reader :file_name, :screen, :data_lines, :cursor_position_x, :cursor_file_position_y, :screen_top_file_position_y
+
+    def character_color
+      @character_color ||= CharacterColor.new
+    end
 
     def cursor_down
       setpos(cursor_position_y, 0)
@@ -148,7 +158,9 @@ module HelloCurses
       end
 
       @cursor_file_position_y = max_data_line
-      @screen_top_file_position_y = cursor_file_position_y - screen.maxy + 1
+
+      top = cursor_file_position_y - screen.maxy + 1
+      @screen_top_file_position_y = top.positive? ? top : 0
 
       refresh
     end
@@ -182,7 +194,7 @@ module HelloCurses
 
         deleted_str = data_lines[cursor_file_position_y].to_s.chomp + str
 
-        write_to_file(cursor_position_y, deleted_str)
+        data_lines[cursor_file_position_y] = deleted_str
         delete_line
       else
         b = str[0...cursor_position_x-1].to_s
@@ -190,7 +202,7 @@ module HelloCurses
 
         deleted_str = b + a
 
-        write_to_file(cursor_position_y, deleted_str)
+        data_lines[cursor_file_position_y] = deleted_str
         draw_line(cursor_position_y, deleted_str)
         cursor_left
       end
@@ -204,13 +216,9 @@ module HelloCurses
 
       inputed_str = b + char + a
 
-      write_to_file(cursor_position_y, inputed_str)
+      data_lines[cursor_file_position_y] = inputed_str
       draw_line(cursor_position_y, inputed_str)
       cursor_right
-    end
-
-    def write_to_file(postion, data)
-      data_lines[postion] = data
     end
 
     def draw_line(postion, data)
